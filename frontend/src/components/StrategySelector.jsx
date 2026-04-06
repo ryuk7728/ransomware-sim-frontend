@@ -88,10 +88,12 @@ const THREAT_BADGE = {
   SECURE:   'badge-green',
 }
 
-export default function StrategySelector({ onLaunch }) {
+export default function StrategySelector({ onPrepare, onLaunch, preparedWorkspace }) {
   const [strategies, setStrategies] = useState(DEFAULT_STRATEGIES)
   const [selected, setSelected]     = useState(null)
+  const [preparing, setPreparing]   = useState(false)
   const [launching, setLaunching]   = useState(false)
+  const [actionError, setActionError] = useState('')
 
   // Try to fetch strategies from backend, fall back silently
   useEffect(() => {
@@ -107,10 +109,31 @@ export default function StrategySelector({ onLaunch }) {
       .catch(() => {}) // silently use defaults
   }, [])
 
-  const handleLaunch = () => {
+  const isPreparedForSelection = preparedWorkspace?.strategy === selected?.id
+
+  const handlePrepare = async () => {
     if (!selected) return
+    setPreparing(true)
+    setActionError('')
+    try {
+      await onPrepare(selected)
+    } catch (err) {
+      setActionError(err.message || 'Failed to prepare workspace.')
+    } finally {
+      setPreparing(false)
+    }
+  }
+
+  const handleLaunch = async () => {
+    if (!selected) return
+    setActionError('')
     setLaunching(true)
-    onLaunch(selected)
+    try {
+      await onLaunch(selected)
+    } catch (err) {
+      setActionError(err.message || 'Failed to launch simulation.')
+      setLaunching(false)
+    }
   }
 
   return (
@@ -146,27 +169,55 @@ export default function StrategySelector({ onLaunch }) {
       <div className="launch-row">
         <div className="launch-info">
           {selected ? (
-            <>
-              <span className="text-dim">SELECTED:</span>&nbsp;
-              <span className={`text-${selected.threatColor}`}>{selected.name.toUpperCase()}</span>
-              &nbsp;
-              <span className="text-dim">// Expected loss:</span>&nbsp;
-              <span className={`text-${selected.threatColor}`}>{selected.expected_loss}</span>
-              &nbsp;
-              <span className="text-dim">// Downtime:</span>&nbsp;
-              <span className={`text-${selected.threatColor}`}>{selected.expected_downtime}</span>
-            </>
+            <div className="launch-info-stack">
+              <div>
+                <span className="text-dim">SELECTED:</span>&nbsp;
+                <span className={`text-${selected.threatColor}`}>{selected.name.toUpperCase()}</span>
+                &nbsp;
+                <span className="text-dim">// Expected loss:</span>&nbsp;
+                <span className={`text-${selected.threatColor}`}>{selected.expected_loss}</span>
+                &nbsp;
+                <span className="text-dim">// Downtime:</span>&nbsp;
+                <span className={`text-${selected.threatColor}`}>{selected.expected_downtime}</span>
+              </div>
+              <div className="launch-helper">
+                {isPreparedForSelection ? (
+                  <>
+                    <span className="badge badge-green">WORKSPACE READY</span>
+                    <span className="text-dim">
+                      {preparedWorkspace.total_files} files prepared // backup: {preparedWorkspace.backup_type}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-dim">
+                    1. Create organisation files to inspect the clean workspace and backups. 2. Launch the attack simulation.
+                  </span>
+                )}
+              </div>
+              {actionError && (
+                <div className="launch-helper text-red">{actionError}</div>
+              )}
+            </div>
           ) : (
             <span className="text-dim">↑ Select a strategy to continue</span>
           )}
         </div>
-        <button
-          className="btn btn-red launch-btn"
-          disabled={!selected || launching}
-          onClick={handleLaunch}
-        >
-          {launching ? '◌ LAUNCHING...' : '⬛ LAUNCH ATTACK SIMULATION'}
-        </button>
+        <div className="launch-actions">
+          <button
+            className="btn btn-cyan prepare-btn"
+            disabled={!selected || preparing || launching}
+            onClick={handlePrepare}
+          >
+            {preparing ? '◌ CREATING...' : '◌ CREATE ORGANISATION FILES'}
+          </button>
+          <button
+            className="btn btn-red launch-btn"
+            disabled={!selected || launching || preparing || !isPreparedForSelection}
+            onClick={handleLaunch}
+          >
+            {launching ? '◌ LAUNCHING...' : '⬛ LAUNCH ATTACK SIMULATION'}
+          </button>
+        </div>
       </div>
     </div>
   )

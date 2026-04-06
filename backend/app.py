@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .orchestrator import run_simulation
+from .orchestrator import prepare_workspace, run_simulation
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -68,22 +68,41 @@ app.add_middleware(
 SIMULATION_QUEUES: dict[str, Queue] = {}
 SIMULATION_RESULTS: dict[str, dict] = {}
 SIMULATION_TASKS: dict[str, asyncio.Task] = {}
+PREPARED_WORKSPACE: dict | None = None
 
 
 async def _run_and_store(simulation_id: str, strategy: int) -> None:
     queue = SIMULATION_QUEUES[simulation_id]
-    metrics = await run_simulation(strategy, queue)
+    metrics = await run_simulation(strategy, queue, use_existing_workspace=True)
     SIMULATION_RESULTS[simulation_id] = metrics
+
+
+@app.post("/prepare-workspace")
+async def prepare(payload: SimulationRequest) -> dict:
+    global PREPARED_WORKSPACE
+
+    if payload.strategy not in {1, 2, 3, 4}:
+        raise HTTPException(status_code=400, detail="Strategy must be 1, 2, 3, or 4.")
+
+    PREPARED_WORKSPACE = await prepare_workspace(payload.strategy)
+    return PREPARED_WORKSPACE
 
 
 @app.post("/simulate")
 async def simulate(payload: SimulationRequest) -> dict:
+    global PREPARED_WORKSPACE
+
     if payload.strategy not in {1, 2, 3, 4}:
         raise HTTPException(status_code=400, detail="Strategy must be 1, 2, 3, or 4.")
+    if PREPARED_WORKSPACE is None:
+        raise HTTPException(status_code=409, detail="Prepare organisation files before launching the simulation.")
+    if PREPARED_WORKSPACE.get("strategy") != payload.strategy:
+        raise HTTPException(status_code=409, detail="Prepared workspace does not match the selected strategy. Recreate organisation files first.")
 
     simulation_id = str(uuid4())
     SIMULATION_QUEUES[simulation_id] = Queue()
     SIMULATION_TASKS[simulation_id] = asyncio.create_task(_run_and_store(simulation_id, payload.strategy))
+    PREPARED_WORKSPACE = None
     return {"simulation_id": simulation_id}
 
 

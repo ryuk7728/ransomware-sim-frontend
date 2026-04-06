@@ -18,6 +18,7 @@ export default function App() {
   const [phase, setPhase]         = useState(PHASE.SELECT)
   const [strategy, setStrategy]   = useState(null)
   const [simId, setSimId]         = useState(null)
+  const [preparedWorkspace, setPreparedWorkspace] = useState(null)
   const [logs, setLogs]           = useState([])
   const [metrics, setMetrics]     = useState(null)
   const [timeline, setTimeline]   = useState([])
@@ -41,8 +42,31 @@ export default function App() {
     })
   }, [])
 
+  // ── Prepare workspace without starting the attack ────────────────
+  const prepareWorkspace = useCallback(async (selectedStrategy) => {
+    setStrategy(selectedStrategy)
+    setSimId(null)
+    setMetrics(null)
+
+    const res = await fetch('/prepare-workspace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy: selectedStrategy.id })
+    })
+
+    const data = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
+
+    setPreparedWorkspace(data)
+    return data
+  }, [])
+
   // ── Launch simulation ─────────────────────────────────────────────
   const launchSimulation = useCallback(async (selectedStrategy) => {
+    if (preparedWorkspace?.strategy !== selectedStrategy.id) {
+      throw new Error('Create organisation files for this strategy before launching the simulation.')
+    }
+
     setStrategy(selectedStrategy)
     setLogs([])
     setTimeline([])
@@ -61,10 +85,11 @@ export default function App() {
         body: JSON.stringify({ strategy: selectedStrategy.id })
       })
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       const id = data.simulation_id
 
+      setPreparedWorkspace(null)
       setSimId(id)
       pushLog('info', `Simulation ID: ${id}`)
       pushLog('info', 'WebSocket channel established. Awaiting events...')
@@ -132,8 +157,9 @@ export default function App() {
       pushLog('error', `Failed to connect to backend: ${err.message}`)
       pushLog('error', 'Make sure FastAPI is running: uvicorn app:app --reload')
       setWsStatus('error')
+      throw err
     }
-  }, [pushLog, pushTimeline, wsStatus])
+  }, [preparedWorkspace, pushLog, pushTimeline, wsStatus])
 
   // ── Reset to strategy select ──────────────────────────────────────
   const reset = useCallback(() => {
@@ -141,6 +167,7 @@ export default function App() {
     setPhase(PHASE.SELECT)
     setStrategy(null)
     setSimId(null)
+    setPreparedWorkspace(null)
     setLogs([])
     setTimeline([])
     setMetrics(null)
@@ -209,7 +236,11 @@ export default function App() {
       {/* ── Main Content ─────────────────────────────────────────────── */}
       <main className="app-main">
         {phase === PHASE.SELECT && (
-          <StrategySelector onLaunch={launchSimulation} />
+          <StrategySelector
+            onPrepare={prepareWorkspace}
+            onLaunch={launchSimulation}
+            preparedWorkspace={preparedWorkspace}
+          />
         )}
 
         {phase === PHASE.SIMULATING && (

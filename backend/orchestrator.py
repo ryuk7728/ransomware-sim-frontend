@@ -11,6 +11,10 @@ from .ransomware_sim import run_ransomware
 from .strategy_engine import run_recovery, run_watcher, setup_defense
 
 
+def _workspace_base_path() -> Path:
+    return Path(__file__).resolve().parent / "sim_workspace"
+
+
 def _persist_event_log(base_path: str, event_log: dict) -> None:
     base_dir = Path(base_path).resolve()
     snapshot_path = base_dir / "event_log.json"
@@ -28,21 +32,71 @@ def _queue_message(ws_queue: Queue, message_type: str, message: str, timestamp: 
     )
 
 
-async def run_simulation(strategy: int, ws_queue: Queue) -> dict:
-    base_path = Path(__file__).resolve().parent / "sim_workspace"
+def _load_event_log(base_path: str) -> dict:
+    snapshot_path = Path(base_path).resolve() / "event_log.json"
+    if not snapshot_path.exists():
+        return {}
+
+    try:
+        return json.loads(snapshot_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _build_workspace_details(base_path: str, event_log: dict) -> dict:
+    base_dir = Path(base_path).resolve()
+    org_dir = base_dir / "org_files"
+    isolated_backup_dir = base_dir / "isolated_backup"
+    connected_backup_dir = base_dir / "connected_backup"
+    backup_dir = connected_backup_dir if connected_backup_dir.exists() else isolated_backup_dir
+
+    return {
+        "prepared": True,
+        "strategy": event_log.get("strategy"),
+        "total_files": event_log.get("total_files", 0),
+        "backup_type": event_log.get("backup_type", "none"),
+        "prepared_at": event_log.get("workspace_created_at", time.time()),
+        "org_files_path": str(org_dir.resolve()),
+        "backup_path": str(backup_dir.resolve()) if backup_dir.exists() else None,
+    }
+
+
+def _prepare_workspace_sync(strategy: int, base_path: str) -> dict:
+    event_log = {"strategy": strategy}
+    file_info = generate_org_files(base_path)
+    event_log["total_files"] = file_info["total_files"]
+    event_log["file_list"] = file_info["file_list"]
+    event_log["workspace_created_at"] = file_info["created_at"]
+    _persist_event_log(base_path, event_log)
+    setup_defense(strategy, base_path, event_log)
+    _persist_event_log(base_path, event_log)
+    return event_log
+
+
+async def prepare_workspace(strategy: int) -> dict:
+    base_path = _workspace_base_path()
+    event_log = await asyncio.to_thread(_prepare_workspace_sync, strategy, str(base_path))
+    return _build_workspace_details(str(base_path), event_log)
+
+
+async def run_simulation(strategy: int, ws_queue: Queue, use_existing_workspace: bool = False) -> dict:
+    base_path = _workspace_base_path()
     event_log = {"strategy": strategy}
     stop_event = Event()
 
     try:
-        _queue_message(ws_queue, "log", "Generating organizational file system...")
-        file_info = await asyncio.to_thread(generate_org_files, str(base_path))
-        event_log["total_files"] = file_info["total_files"]
-        event_log["file_list"] = file_info["file_list"]
-        event_log["workspace_created_at"] = file_info["created_at"]
-        _persist_event_log(str(base_path), event_log)
-
-        _queue_message(ws_queue, "log", f"Setting up security posture: Strategy {strategy}...")
-        await asyncio.to_thread(setup_defense, strategy, str(base_path), event_log)
+        if use_existing_workspace:
+            event_log = _load_event_log(str(base_path))
+            if not event_log:
+                raise RuntimeError("Workspace not prepared. Create organisation files before launching the simulation.")
+            if event_log.get("strategy") != strategy:
+                raise RuntimeError("Prepared workspace does not match the selected strategy. Recreate organisation files first.")
+            _queue_message(ws_queue, "log", f"Using prepared workspace for Strategy {strategy}.")
+            _queue_message(ws_queue, "log", f"Prepared org files detected: {event_log.get('total_files', 0)} files ready for attack.")
+        else:
+            _queue_message(ws_queue, "log", "Generating organizational file system...")
+            event_log = await asyncio.to_thread(_prepare_workspace_sync, strategy, str(base_path))
+            _queue_message(ws_queue, "log", f"Setting up security posture: Strategy {strategy}...")
 
         _queue_message(ws_queue, "log", "Attack initiated. Ransomware spreading...")
         event_log["attack_start"] = time.time()

@@ -197,6 +197,28 @@
   flex: 1;
 }
 
+.launch-info-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.launch-helper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+
+.launch-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.prepare-btn,
 .launch-btn {
   font-size: 13px;
   padding: 12px 32px;
