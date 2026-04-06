@@ -6,6 +6,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      '/prepare-workspace': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      },
       '/simulate': {
         target: 'http://localhost:8000',
         changeOrigin: true
