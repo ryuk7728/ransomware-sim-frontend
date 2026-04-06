@@ -1,0 +1,244 @@
+/* ── Selector Header ─────────────────────────────────────────────── */
+.selector-header {
+  margin-bottom: 36px;
+}
+
+.selector-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 58px);
+  letter-spacing: 6px;
+  color: var(--text-bright);
+  line-height: 1;
+  margin-bottom: 16px;
+  margin-top: 8px;
+}
+
+.selector-subtitle {
+  max-width: 680px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+.selector-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Strategy Grid ───────────────────────────────────────────────── */
+.strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 1100px) {
+  .strategy-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .strategy-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Strategy Card ───────────────────────────────────────────────── */
+.strategy-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  animation: fadeInUp 0.4s ease forwards;
+  opacity: 0;
+}
+
+.strategy-card:hover {
+  border-color: var(--card-color, var(--border-bright));
+  background: var(--bg-card-2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px var(--card-color, transparent);
+}
+
+.strategy-card.selected {
+  border-color: var(--card-color, var(--cyan));
+  background: var(--bg-card-2);
+  box-shadow: 0 0 20px rgba(0,0,0,0.5),
+              inset 0 0 40px rgba(0,0,0,0.2),
+              0 0 0 1px var(--card-color, transparent);
+}
+
+.strategy-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.strategy-card-id {
+  font-family: var(--font-display);
+  font-size: 32px;
+  color: var(--card-color, var(--text-dim));
+  opacity: 0.25;
+  line-height: 1;
+}
+
+.selected .strategy-card-id { opacity: 0.6; }
+
+.strategy-card-name {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.strategy-card-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin-bottom: 0;
+}
+
+.strategy-card-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+/* ── Features ────────────────────────────────────────────────────── */
+.strategy-features {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.strategy-feature {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  gap: 8px;
+}
+
+.feature-label {
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.feature-value {
+  text-align: right;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* ── Metrics Row ─────────────────────────────────────────────────── */
+.strategy-metrics-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.strategy-metric {
+  flex: 1;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+.metric-val {
+  font-size: 14px;
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+}
+
+/* ── Selected Indicator ──────────────────────────────────────────── */
+.selected-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 5px;
+  background: var(--card-color, var(--cyan));
+  color: var(--bg);
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+/* ── Launch Row ──────────────────────────────────────────────────── */
+.launch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.launch-info {
+  font-size: 12px;
+  flex: 1;
+}
+
+.launch-btn {
+  font-size: 13px;
+  padding: 12px 32px;
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Sim layout ──────────────────────────────────────────────────── */
+.sim-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .sim-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Attack Banner ───────────────────────────────────────────────── */
+.attack-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(255,23,68,0.05);
+  border: 1px solid var(--red-dim);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.attack-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.attack-banner-stat {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
